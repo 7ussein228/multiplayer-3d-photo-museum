@@ -14,8 +14,13 @@ function getPool(): Pool {
     if (!databaseUrl) {
       throw new Error("DATABASE_URL is required");
     }
+    const max = Number(process.env.DATABASE_POOL_MAX ?? (process.env.VERCEL ? "1" : "10"));
     globalForDb.__arenaNextJsPostgresqlPool = new Pool({
       connectionString: databaseUrl,
+      max: Number.isFinite(max) && max > 0 ? max : 10,
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
+      ...(process.env.DATABASE_SSL === "true" ? { ssl: { rejectUnauthorized: false } } : {}),
     });
   }
   return globalForDb.__arenaNextJsPostgresqlPool;
