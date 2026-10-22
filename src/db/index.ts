@@ -8,13 +8,20 @@ const globalForDb = globalThis as typeof globalThis & {
   __arenaNextJsPostgresqlDb?: NodePgDatabase<typeof schema>;
 };
 
+function defaultPoolMax(connectionString: string) {
+  if (!process.env.VERCEL) return "10";
+  const pooled =
+    connectionString.includes("-pooler") || connectionString.includes("pgbouncer=true");
+  return pooled ? "5" : "1";
+}
+
 function getPool(): Pool {
   if (!globalForDb.__arenaNextJsPostgresqlPool) {
     const databaseUrl = process.env.DATABASE_URL;
     if (!databaseUrl) {
       throw new Error("DATABASE_URL is required");
     }
-    const max = Number(process.env.DATABASE_POOL_MAX ?? (process.env.VERCEL ? "1" : "10"));
+    const max = Number(process.env.DATABASE_POOL_MAX ?? defaultPoolMax(databaseUrl));
     globalForDb.__arenaNextJsPostgresqlPool = new Pool({
       connectionString: databaseUrl,
       max: Number.isFinite(max) && max > 0 ? max : 10,
